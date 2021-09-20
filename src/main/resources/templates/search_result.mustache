@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search result</title>
+</head>
+<body>
+{{#taskAdded}}
+<div>Start scanning domain {{domain}} at {{start_time}}</div>
+{{/taskAdded}}
+<tr>
+    <td>Internal link</td>
+    <td>Level</td>
+    <td>Ext.count</td>
+</tr>
+{{#resultTable}}
+<tr>
+    <td>{{innerUrl}}</td>
+    <td>{{level}}</td>
+    <td>{{outerLinksCount}}</td>
+</tr>
+{{/resultTable}}
+</body>
+</html>
