@@ -1,7 +1,7 @@
 package com.ioantus.LinkSearch.converters;
 
 
-import com.ioantus.LinkSearch.context.AppConstants;
+import com.ioantus.LinkSearch.config.AppConstants;
 
 import java.net.MalformedURLException;
 import java.net.URL;

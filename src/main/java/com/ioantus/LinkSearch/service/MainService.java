@@ -1,11 +1,12 @@
 package com.ioantus.LinkSearch.service;
 
-import com.ioantus.LinkSearch.context.AppConstants;
-import com.ioantus.LinkSearch.context.AppContext;
+import com.ioantus.LinkSearch.config.AppConstants;
+import com.ioantus.LinkSearch.config.AppContext;
 import com.ioantus.LinkSearch.pageConsumer.TaskConsumer;
 import com.ioantus.LinkSearch.pageConsumer.UrlConsumer;
 import com.ioantus.LinkSearch.DTO.SinglePageDTO;
 import com.ioantus.LinkSearch.pageSupplier.UrlSupplier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -20,12 +21,22 @@ public class MainService implements Runnable {
     private final Map<URL, SinglePageDTO> resultData;
     private final Map<URL, CompletableFuture> futureMap;
     private final ApplicationContext ctx = new AnnotationConfigApplicationContext(AppContext.class);
+    private volatile Long internalPagesCount;
+    private volatile Long externalPagesCount;
+    private Date startTime;
+    private Date endTime;
+    private boolean jobDone;
 
     public MainService(String mainDomain, Integer maxLevel) {
         this.mainDomain = mainDomain;
         this.maxLevel = maxLevel;
         resultData = new HashMap<>();
         futureMap = new HashMap<>();
+        internalPagesCount = 0L;
+        externalPagesCount = 0L;
+        startTime = new Date();
+        endTime = startTime;
+        jobDone = false;
     }
 
     @Override
@@ -37,7 +48,7 @@ public class MainService implements Runnable {
         SinglePageDTO mainPageDto = new SinglePageDTO(url);
         mainPageDto.setLevel(0);
         createNewTask(mainPageDto);
-        while (futureMap.size() != 0) {
+        /*while (futureMap.size() != 0) {
             // Check new task
             try {
                 Thread.sleep(10L);
@@ -45,7 +56,7 @@ public class MainService implements Runnable {
                 e.printStackTrace();
             }
             continue;
-        }
+        }*/
         AppConstants.LOGGER.debug(String.format("Finish scanning domain: %s, thread: %s",
             mainDomain, Thread.currentThread().getName())
         );
@@ -67,10 +78,10 @@ public class MainService implements Runnable {
                                         taskPageDto.getInnerUrl().toString(), Thread.currentThread().getName())
                                 );
                                 return set;
-                            }, (ExecutorService)ctx.getBean("executorService"))
+                            }/*, (ExecutorService)ctx.getBean("executorService")*/)
                             // Create new task records
                             .thenAcceptAsync((set) -> {
-                                if (taskPageDto.getLevel() < maxLevel) {
+                                if (maxLevel == 0 || taskPageDto.getLevel() < maxLevel) {
                                     Queue<SinglePageDTO> newDtoQueue = new LinkedList<>();
                                     new TaskConsumer(taskPageDto, newDtoQueue).accept(set);
                                     newDtoQueue.forEach(this::createNewTask);
@@ -78,7 +89,7 @@ public class MainService implements Runnable {
                                             Thread.currentThread().getName())
                                     );
                                 }
-                            }, (ExecutorService)ctx.getBean("executorService"))
+                            }/*, (ExecutorService)ctx.getBean("executorService")*/)
                             .exceptionally(ex -> {
                                 AppConstants.LOGGER.error(String.format("Thread: %s, exception: %s",
                                         Thread.currentThread().getName(), ex.getMessage())
@@ -89,6 +100,10 @@ public class MainService implements Runnable {
                             // Remove future from map after it's finished
                             .thenRun(() -> {
                                 futureMap.remove(taskPageDto.getInnerUrl());
+                                if (futureMap.size() == 0) {
+                                    endTime = new Date();
+                                    jobDone = true;
+                                }
                                 AppConstants.LOGGER.debug(String.format("Future succeed, thread: %s",
                                         Thread.currentThread().getName())
                                 );
@@ -117,11 +132,43 @@ public class MainService implements Runnable {
         if (!resultData.containsKey(innerUrl)) {
             // Put new result DTO
             resultData.put(innerUrl, newPageDto);
+            internalPagesCount++;
+            externalPagesCount += newPageDto.getOuterLinksCount();
         } else if (resultData.containsKey(innerUrl)) {
             // Check level in existing DTO
             SinglePageDTO singlePageDTO = resultData.get(innerUrl);
             singlePageDTO.setLevel(Integer.min(singlePageDTO.getLevel(), newPageDto.getLevel()));
         }
+    }
+
+    public List<SinglePageDTO> getResultList() {
+        List<SinglePageDTO> resultList = new ArrayList<SinglePageDTO>();
+        resultData.forEach((k,v)->resultList.add(v));
+        return resultList;
+    }
+
+    public String getMainDomain(){
+        return mainDomain;
+    }
+
+    public Long getInternalPagesCount(){
+        return internalPagesCount;
+    }
+
+    public Long getExternalPagesCount(){
+        return externalPagesCount;
+    }
+
+    public Date getStartTime(){
+        return startTime;
+    }
+
+    public Date getEndTime(){
+        return endTime;
+    }
+
+    public boolean idDone() {
+        return jobDone;
     }
 
 }

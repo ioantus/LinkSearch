@@ -3,22 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <title>Search result</title>
+    <style type="text/css">
+        h1 {
+            font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+            font-size: 18px;
+            text-align: left;
+            color: #656665;
+        }
+        .button10 {
+            display: inline-flex;
+            margin: 10px;
+            text-decoration: none;
+            position: relative;
+            font-size: 20px;
+            line-height: 20px;
+            padding: 12px 30px;
+            color: #FFF;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: 'Roboto Condensed', Тahoma, sans-serif;
+            background: #337AB7;
+            cursor: pointer;
+            border: 2px solid #BFE2FF;
+        }
+        .button10:hover,
+        .button10:active,
+        .button10:focus {
+            color: #FFF;
+        }
+        .button10:after,
+        .button10:before {
+            position: absolute;
+            height: 4px;
+            left: 50%;
+            background: #337AB7;
+            bottom: -6px;
+            content: "";
+            transition: all 280ms ease-in-out;
+            width: 0;
+        }
+        .button10:before {
+            top: -6px;
+        }
+        .button10:hover:after,
+        .button10:hover:before,
+        .button10:active:after,
+        .button10:active:before,
+        .button10:focus:after,
+        .button10:focus:before {
+            width: 100%;
+            left: 0;
+        }
+        table {
+            font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+            text-align: left;
+            border-collapse: separate;
+            border-spacing: 5px;
+            background: #ECE9E0;
+            color: #656665;
+            border: 16px solid #ECE9E0;
+            border-radius: 20px;
+        }
+        th {
+            font-size: 18px;
+            padding: 10px;
+        }
+        td {
+            background: #F5D7BF;
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
 {{#taskAdded}}
-<div>Start scanning domain {{domain}} at {{start_time}}</div>
+<h1>Start scanning domain {{domain}} at {{start_time}}, found {{internalCount}} pages with {{externalCount}} external links{{#isDone}}, finished at {{end_time}}{{/isDone}}</h1>
+{{^isDone}}
+<form name="refresh" action="update_table?domain={{domain}}&maxLevel={{maxLevel}}" method="post">
+    <button class = "button10" type="submit">REFRESH</button>
+</form>
+{{/isDone}}
 {{/taskAdded}}
-<tr>
-    <td>Internal link</td>
-    <td>Level</td>
-    <td>Ext.count</td>
-</tr>
-{{#resultTable}}
-<tr>
-    <td>{{innerUrl}}</td>
-    <td>{{level}}</td>
-    <td>{{outerLinksCount}}</td>
-</tr>
-{{/resultTable}}
+<table>
+    <tbody>
+        <tr>
+            <th>Internal link</th>
+            <th>Level</th>
+            <th>Ext.count</th>
+        </tr>
+        {{#resultTable}}
+        <tr>
+            <td>{{innerUrl}}</td>
+            <td>{{level}}</td>
+            <td>{{outerLinksCount}}</td>
+        </tr>
+        {{/resultTable}}
+    </tbody>
+</table>
 </body>
 </html>

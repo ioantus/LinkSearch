@@ -1,18 +1,16 @@
 package com.ioantus.LinkSearch.controller;
 
 import com.ioantus.LinkSearch.DTO.ScanResultDTO;
+import com.ioantus.LinkSearch.config.AppConstants;
 import com.ioantus.LinkSearch.service.MainService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.SessionAttributes;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 @Controller
@@ -20,45 +18,69 @@ import java.util.concurrent.ExecutorService;
 public class MainController {
 
     @Autowired
-    private ApplicationContext ctx;
+    private ExecutorService executorService;
 
     @GetMapping("/")
     public String handleIndex(
-            //@RequestParam(name = "uuid", required = true, defaultValue = "") String uuid,
-            Map<String, Object> model
     ) {
-        /*if (uuid == null || uuid.equals("")) {
-            uuid = UUID.randomUUID().toString();
-            model.put("uuid", uuid);
-        }*/
-        return  "index";
+        return "index";
     }
 
     @GetMapping("/run")
-    public String handleIndex(
+    public String handleScan(
             @RequestParam(name = "domain", required = true, defaultValue = "") String domain,
-            @RequestParam(name = "maxLevel", required = true, defaultValue = "1") String maxLevel,
-            //@RequestParam(name = "uuid", required = true, defaultValue = "") String uuid,
+            @RequestParam(name = "maxLevel", required = true, defaultValue = "0") String maxLevel,
             Map<String, Object> model
     ) {
-        /*if (uuid == null || uuid.equals("")) {
-            uuid = UUID.randomUUID().toString();
-            model.put("uuid", uuid);
-        }*/
         if (domain == null || domain.equals("")) {
             return  "index";
         } else {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-            MainService workProcess = new MainService(domain, Integer.valueOf(maxLevel));
-            ScanResultDTO resultDTO = new ScanResultDTO(domain, Integer.valueOf(maxLevel), workProcess);
-            //((ExecutorService)ctx.getBean("executorService")).submit(workProcess);
+            ScanResultDTO resultDTO;
+            String resultDTOName = "resultDTO_"+maxLevel+"_"+domain.toUpperCase();
+            if (!model.containsKey(resultDTOName)) {
+                MainService workProcess = new MainService(domain, Integer.valueOf(maxLevel));
+                resultDTO = new ScanResultDTO(domain, Integer.valueOf(maxLevel), workProcess);
+                executorService.submit(workProcess);
+            } else {
+                resultDTO = (ScanResultDTO)model.get(resultDTOName);
+            }
+            model.put(resultDTOName, resultDTO);/*
+            model.put("domain", resultDTO.getService().getMainDomain());
+            model.put("maxLevel", maxLevel);
+            model.put("start_time", AppConstants.DF.format(resultDTO.getService().getStartTime()));
+            model.put("isDone", resultDTO.getService().idDone());
             model.put("taskAdded", true);
-            model.put("domain", domain);
-            model.put("start_time", dateFormat.format(new Date()));
-            model.put("result", resultDTO);
-            model.put("resultTable", false);
+            model.put("resultTable", resultDTO.getService().getResultList());*/
+            putResult(model, resultDTO);
             return  "search_result";
         }
+    }
+
+    @PostMapping("/update_table")
+    public String handleUpdate(
+            @RequestParam(name = "domain", required = true, defaultValue = "") String domain,
+            @RequestParam(name = "maxLevel", required = true, defaultValue = "0") String maxLevel,
+            Map<String, Object> model
+    ) {
+        if (domain != null && !domain.equals("") && model.containsKey("resultDTO_"+maxLevel+"_"+domain.toUpperCase())) {
+            ScanResultDTO resultDTO = (ScanResultDTO)model.get("resultDTO_"+maxLevel+"_"+domain.toUpperCase());
+            putResult(model, resultDTO);
+            return  "search_result";
+        } else {
+            return  "index";
+        }
+    }
+
+    private void putResult(Map<String, Object> model, ScanResultDTO resultDTO) {
+        model.put("taskAdded", true);
+        model.put("domain", resultDTO.getService().getMainDomain());
+        model.put("maxLevel", resultDTO.getLevelScan());
+        model.put("internalCount", resultDTO.getService().getInternalPagesCount());
+        model.put("externalCount", resultDTO.getService().getExternalPagesCount());
+        model.put("start_time", AppConstants.DF.format(resultDTO.getService().getStartTime()));
+        model.put("end_time", AppConstants.DF.format(resultDTO.getService().getEndTime()));
+        model.put("resultTable",  resultDTO.getService().getResultList());
+        model.put("isDone", resultDTO.getService().idDone());
     }
 
 }

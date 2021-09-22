@@ -1,7 +1,7 @@
 package com.ioantus.LinkSearch;
 
-import com.ioantus.LinkSearch.context.AppConstants;
-import com.ioantus.LinkSearch.context.AppContext;
+import com.ioantus.LinkSearch.config.AppConstants;
+import com.ioantus.LinkSearch.config.AppContext;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;

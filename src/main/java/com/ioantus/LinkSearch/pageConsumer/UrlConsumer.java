@@ -1,6 +1,6 @@
 package com.ioantus.LinkSearch.pageConsumer;
 
-import com.ioantus.LinkSearch.context.AppConstants;
+import com.ioantus.LinkSearch.config.AppConstants;
 import com.ioantus.LinkSearch.DTO.SinglePageDTO;
 import lombok.RequiredArgsConstructor;
 

@@ -1,13 +1,13 @@
 package com.ioantus.LinkSearch.converters;
 
-import com.ioantus.LinkSearch.context.AppConstants;
+import com.ioantus.LinkSearch.config.AppConstants;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.function.BiFunction;
 
-import static com.ioantus.LinkSearch.context.AppConstants.CORRECT_EXTENSIONS;
+import static com.ioantus.LinkSearch.config.AppConstants.CORRECT_EXTENSIONS;
 
 public class UrlConverter implements BiFunction<String, String, URL> {
 

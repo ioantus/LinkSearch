@@ -1,6 +1,6 @@
 package com.ioantus.LinkSearch.pageSupplier;
 
-import com.ioantus.LinkSearch.context.AppConstants;
+import com.ioantus.LinkSearch.config.AppConstants;
 import lombok.AllArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -36,7 +36,8 @@ public class UrlSupplier implements Supplier<Set<String>> {
             }
         } catch (IOException e) {
             AppConstants.LOGGER.error(String.format("UrlSupplier exception during scanning url: %s, thread: %s, stack trace: %s",
-                    url.toString(), Thread.currentThread().getName(), System.err));
+                    url.toString(), Thread.currentThread().getName(), e.toString()));
+            throw new RuntimeException(e.toString());
         }
         return resultSet;
     }
