@@ -1,15 +1,17 @@
 package com.ioantus.LinkSearch.controller;
 
 import com.ioantus.LinkSearch.DTO.ScanResultDTO;
+import com.ioantus.LinkSearch.DTO.SinglePageDTO;
 import com.ioantus.LinkSearch.config.AppConstants;
+import com.ioantus.LinkSearch.report.ReportBuilder;
 import com.ioantus.LinkSearch.service.MainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -36,51 +38,70 @@ public class MainController {
             return  "index";
         } else {
             ScanResultDTO resultDTO;
-            String resultDTOName = "resultDTO_"+maxLevel+"_"+domain.toUpperCase();
-            if (!model.containsKey(resultDTOName)) {
-                MainService workProcess = new MainService(domain, Integer.valueOf(maxLevel));
-                resultDTO = new ScanResultDTO(domain, Integer.valueOf(maxLevel), workProcess);
-                executorService.submit(workProcess);
+            String resultName = formatResultName(maxLevel, domain.toUpperCase());
+            if (!model.containsKey(resultName)) {
+                resultDTO = new ScanResultDTO(domain, Integer.valueOf(maxLevel), new HashSet<SinglePageDTO>());
+                MainService service = new MainService(resultDTO);
+                executorService.submit(service);
             } else {
-                resultDTO = (ScanResultDTO)model.get(resultDTOName);
+                resultDTO = (ScanResultDTO) model.get(resultName);
             }
-            model.put(resultDTOName, resultDTO);/*
-            model.put("domain", resultDTO.getService().getMainDomain());
-            model.put("maxLevel", maxLevel);
-            model.put("start_time", AppConstants.DF.format(resultDTO.getService().getStartTime()));
-            model.put("isDone", resultDTO.getService().idDone());
-            model.put("taskAdded", true);
-            model.put("resultTable", resultDTO.getService().getResultList());*/
+            model.put(resultName, resultDTO);
             putResult(model, resultDTO);
-            return  "search_result";
+            return  "result";
         }
     }
 
-    @PostMapping("/update_table")
+    @PostMapping("/refresh")
     public String handleUpdate(
             @RequestParam(name = "domain", required = true, defaultValue = "") String domain,
             @RequestParam(name = "maxLevel", required = true, defaultValue = "0") String maxLevel,
             Map<String, Object> model
     ) {
-        if (domain != null && !domain.equals("") && model.containsKey("resultDTO_"+maxLevel+"_"+domain.toUpperCase())) {
-            ScanResultDTO resultDTO = (ScanResultDTO)model.get("resultDTO_"+maxLevel+"_"+domain.toUpperCase());
+        if (domain != null && !domain.equals("") && model.containsKey(formatResultName(maxLevel, domain))) {
+            ScanResultDTO resultDTO = (ScanResultDTO)model.get(formatResultName(maxLevel, domain));
             putResult(model, resultDTO);
-            return  "search_result";
+            return  "result";
         } else {
             return  "index";
         }
     }
 
+
+    @GetMapping(value = "/report/{maxLevel}_{domain}.xlsx")
+    public void getReport(
+            @PathVariable("domain") String domain,
+            @PathVariable("maxLevel") String maxLevel,
+            HttpServletResponse response,
+            Map<String, Object> model
+    ) {
+        try {
+            if (domain != null && !domain.equals("") && model.containsKey(formatResultName(maxLevel, domain))) {
+                ScanResultDTO resultDTO = (ScanResultDTO)model.get(formatResultName(maxLevel, domain));
+                ReportBuilder.createReport(resultDTO, response.getOutputStream());
+                response.flushBuffer();
+            }
+        } catch (IOException ex) {
+            AppConstants.LOGGER.error(String.format("Error writing file to output stream, domain %s", domain));
+            throw new RuntimeException("IOError writing file to output stream");
+        }
+
+    }
+
+    private String formatResultName(String maxLevel, String domain){
+        return "domain_"+maxLevel+"_"+domain.toUpperCase();
+    }
+
     private void putResult(Map<String, Object> model, ScanResultDTO resultDTO) {
         model.put("taskAdded", true);
-        model.put("domain", resultDTO.getService().getMainDomain());
+        model.put("domain", resultDTO.getDomain());
         model.put("maxLevel", resultDTO.getLevelScan());
-        model.put("internalCount", resultDTO.getService().getInternalPagesCount());
-        model.put("externalCount", resultDTO.getService().getExternalPagesCount());
-        model.put("start_time", AppConstants.DF.format(resultDTO.getService().getStartTime()));
-        model.put("end_time", AppConstants.DF.format(resultDTO.getService().getEndTime()));
-        model.put("resultTable",  resultDTO.getService().getResultList());
-        model.put("isDone", resultDTO.getService().idDone());
+        model.put("internalCount", resultDTO.getResultSet().size());
+        model.put("externalCount", resultDTO.getExternalPagesCount());
+        model.put("start_time", AppConstants.DF.format(resultDTO.getStartTime()));
+        model.put("end_time", AppConstants.DF.format(resultDTO.getEndTime()));
+        model.put("resultTable",  resultDTO.getResultSet());
+        model.put("isDone",resultDTO.isJobDone());
     }
 
 }

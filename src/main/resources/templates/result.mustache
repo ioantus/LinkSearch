@@ -3,6 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>Search result</title>
+    <script type="text/javascript" src="webjars/jquery/3.2.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            var setTimer = null;
+            var start = 1;
+            setTimer = setInterval(function () {start++;$(this).val((start-1));}, 1000);
+            setTimeout(function(){RunAjax($(this));},1000);
+            RunAjax = function (ele){
+                $.ajax({
+                    type: "POST",
+                    async:true,
+                    url: "refresh?domain={{domain}}&maxLevel={{maxLevel}}",
+                    success: function (data) { {{^isDone}}location.reload();{{/isDone}} },
+                    error: function (data) {clearInterval(setTimer);}
+                });
+            }
+        });
+    </script>
     <style type="text/css">
         h1 {
             font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
@@ -77,9 +95,9 @@
 <body>
 {{#taskAdded}}
 <h1>Start scanning domain {{domain}} at {{start_time}}, found {{internalCount}} pages with {{externalCount}} external links{{#isDone}}, finished at {{end_time}}{{/isDone}}</h1>
-{{^isDone}}
-<form name="refresh" action="update_table?domain={{domain}}&maxLevel={{maxLevel}}" method="post">
-    <button class = "button10" type="submit">REFRESH</button>
+{{#isDone}}
+<form name="report" action="/report/{{maxLevel}}_{{domain}}.xlsx" method="get">
+    <button class = "button10" type="submit">Download report</button>
 </form>
 {{/isDone}}
 {{/taskAdded}}

@@ -12,7 +12,7 @@ import java.net.URL;
 @AllArgsConstructor
 public class SinglePageDTO {
     final private URL innerUrl;
-    @EqualsAndHashCode.Exclude private Long outerLinksCount;
     @EqualsAndHashCode.Exclude private Integer level;
+    @EqualsAndHashCode.Exclude private Long outerLinksCount;
 }
 
